@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: rca-chat-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend_requirements.txt
+    startCommand: uvicorn backend_main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: MODEL_NAME
+        value: llama-3.1-70b-versatile
+
+  - type: web
+    name: rca-chat-frontend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run main.py --server.address 0.0.0.0 --server.port $PORT --server.headless true
+    envVars:
+      - key: BACKEND_URL
+        value: https://rca-chat-backend.onrender.com
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
