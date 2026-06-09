@@ -74,7 +74,7 @@ paths:
                     type: integer
                     example: 3
 
-  /chat:
+  /execute:
     post:
       summary: "Send Chat Message & Get RCA Analysis"
       description: |
@@ -87,7 +87,7 @@ paths:
         - **general**: Conversational assistance with knowledge base context
       tags:
         - "Chat"
-      operationId: "sendMessage"
+      operationId: "executeAgent"
       requestBody:
         required: true
         content:

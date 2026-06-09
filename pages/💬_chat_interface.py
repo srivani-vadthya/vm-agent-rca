@@ -146,7 +146,7 @@ def chat_response(user_input):
     """Call backend API for chat response"""
     try:
         response = requests.post(
-            f"{BACKEND_URL}/chat",
+            f"{BACKEND_URL}/execute",
             json={"message": user_input},
             timeout=30
         )
