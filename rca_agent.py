@@ -1,10 +1,10 @@
 from langgraph.graph import StateGraph, END
-from typing import TypedDict
+from typing import TypedDict, Dict, Any
 import os
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_core.messages import HumanMessage
-from tools import TOOLS  # dynamic tool registry
+from tools import registry  # Import the dynamic registry from your tools.py
 
 load_dotenv()
 
@@ -24,6 +24,7 @@ class RCAState(TypedDict):
     analysis: str
     hypothesis: str
     selected_tool: str
+    tool_kwargs: Dict[str, Any]  # NEW: Added to hold dynamic tool arguments
     is_valid: bool
     fix: str
     attempts: int
@@ -32,14 +33,14 @@ class RCAState(TypedDict):
 # NODES
 # -----------------------
 
-def analyze_logs(state):
+def analyze_logs(state: RCAState):
     response = llm.invoke([
         HumanMessage(content=f"Analyze this error:\n{state['error']}")
     ])
     return {**state, "analysis": response.content}
 
 
-def generate_hypothesis(state):
+def generate_hypothesis(state: RCAState):
     response = llm.invoke([
         HumanMessage(content=f"""
         Based on this analysis:
@@ -55,53 +56,60 @@ def generate_hypothesis(state):
     }
 
 
-# 🔥 Dynamic tool selection using LLM
-def choose_tool(state):
-    response = llm.invoke([
+# 🔥 Dynamic Tool Selection using LangChain Tool Calling
+def choose_tool(state: RCAState):
+    # 1. Bind the dynamic schema from your tools.py to the LLM
+    llm_with_tools = llm.bind_tools(registry.get_agent_schema())
+    
+    # 2. Ask the LLM to verify the hypothesis using the tools
+    response = llm_with_tools.invoke([
         HumanMessage(content=f"""
         Based on this hypothesis:
         {state['hypothesis']}
 
-        Which tool should be used to verify it?
-
-        Available tools: kafka, api, file
-
-        Answer ONLY one word.
+        Which tool should be used to verify it? Execute the most appropriate tool with the correct arguments.
         """)
     ])
 
-    tool = response.content.lower().strip()
-
-    # Normalize output (important)
-    if "kafka" in tool:
-        tool = "kafka"
-    elif "api" in tool:
-        tool = "api"
-    elif "file" in tool or "csv" in tool:
-        tool = "file"
-    else:
-        tool = "unknown"
-
-    return {**state, "selected_tool": tool}
+    # 3. Extract the structured tool call
+    if response.tool_calls:
+        tool_call = response.tool_calls[0]
+        return {
+            **state, 
+            "selected_tool": tool_call["name"],
+            "tool_kwargs": tool_call["args"] # Extracts arguments like {"host": "localhost", "port": 9092}
+        }
+    
+    # Fallback if the LLM decides no tools are needed
+    return {**state, "selected_tool": "none", "tool_kwargs": {}}
 
 
-# 🔧 Dynamic validation
-def validate(state):
-    tool_name = state.get("selected_tool", "")
-    tool_func = TOOLS.get(tool_name)
+# 🔧 Dynamic Validation
+def validate(state: RCAState):
+    tool_name = state.get("selected_tool")
+    tool_kwargs = state.get("tool_kwargs", {})
 
-    if tool_func:
-        result = tool_func()
-        return {**state, "is_valid": not result}
+    if tool_name and tool_name != "none":
+        try:
+            # Execute the tool dynamically with the arguments provided by the LLM
+            result = registry.execute(tool_name, **tool_kwargs)
+            
+            # Assuming True means healthy, and False means broken. 
+            # If the tool returns False, the error hypothesis is VALIDATED.
+            return {**state, "is_valid": not result}
+        except Exception as e:
+            print(f"Tool execution failed: {e}")
+            return {**state, "is_valid": False}
 
     return {**state, "is_valid": False}
 
 
-def suggest_fix(state):
+def suggest_fix(state: RCAState):
     response = llm.invoke([
         HumanMessage(content=f"""
         Error: {state['error']}
-        Root cause: {state['hypothesis']}
+        Root cause verified: {state['hypothesis']}
+        Failing component tool check: {state['selected_tool']} with args {state['tool_kwargs']}
         
         Suggest a practical fix.
         """)
@@ -110,18 +118,13 @@ def suggest_fix(state):
 
 
 # -----------------------
-# DECISION
+# DECISION & GRAPH SETUP
 # -----------------------
 
-def decide(state):
+def decide(state: RCAState):
     if state["is_valid"] or state["attempts"] >= 3:
         return "fix"
     return "retry"
-
-
-# -----------------------
-# GRAPH
-# -----------------------
 
 builder = StateGraph(RCAState)
 
@@ -148,6 +151,23 @@ builder.add_conditional_edges(
 
 builder.add_edge("fix", END)
 
+# Compile and export
+graph = builder.compile()
+
+def run_rca(error_message: str) -> dict:
+    """Execute the RCA graph workflow on an error message."""
+    initial_state = {
+        "error": error_message,
+        "analysis": "",
+        "hypothesis": "",
+        "selected_tool": "",
+        "is_valid": False,
+        "fix": "",
+        "attempts": 0
+    }
+    result = graph.invoke(initial_state)
+    return result
+
 graph = builder.compile()
 
 # -----------------------
@@ -160,6 +180,7 @@ def run_rca(error_text):
         "analysis": "",
         "hypothesis": "",
         "selected_tool": "",
+        "tool_kwargs": {},
         "is_valid": False,
         "fix": "",
         "attempts": 0

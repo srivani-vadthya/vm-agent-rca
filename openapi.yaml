@@ -1,0 +1,266 @@
+openapi: "3.0.0"
+info:
+  title: "RCA Chat Agent API"
+  version: "1.0.0"
+  description: "AI-powered Root Cause Analysis (RCA) agent for intelligent error analysis, log troubleshooting, and technical problem-solving. Features agentic tool selection, dynamic hypothesis validation, and knowledge base integration."
+  contact:
+    name: "RCA Agent Support"
+  x-agent-capabilities:
+    - "Error Log Analysis"
+    - "Root Cause Hypothesis Generation"
+    - "Dynamic Tool-Based Validation"
+    - "Adaptive Response Generation"
+    - "Knowledge Base Integration"
+    - "System Diagnostics"
+
+servers:
+  - url: "https://rca-chat-backend.onrender.com"
+    description: "Production Server"
+  - url: "http://localhost:8000"
+    description: "Local Development Server"
+
+paths:
+  /:
+    get:
+      summary: "API Information"
+      description: "Returns basic API metadata and service information"
+      tags:
+        - "System"
+      operationId: "getRootInfo"
+      responses:
+        '200':
+          description: "API information"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "RCA Chat API"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  description:
+                    type: string
+                    example: "Root Cause Analysis Chat Assistant API"
+
+  /health:
+    get:
+      summary: "Health Check"
+      description: "Verify API and service health status"
+      tags:
+        - "System"
+      operationId: "healthCheck"
+      responses:
+        '200':
+          description: "Service is healthy"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: ["healthy"]
+                    example: "healthy"
+                  service:
+                    type: string
+                    example: "RCA Chat API"
+                  groq_configured:
+                    type: boolean
+                    example: true
+                  knowledge_base_files:
+                    type: integer
+                    example: 3
+
+  /chat:
+    post:
+      summary: "Send Chat Message & Get RCA Analysis"
+      description: |
+        Submit a message, error log, or question to the RCA agent. 
+        The agent automatically detects message type and routes to appropriate handler:
+        - **error_log**: Triggers LangGraph agent for multi-step root cause analysis with tool validation
+        - **greeting**: Brief, friendly response
+        - **simple_question**: Concise answer (1-3 sentences)
+        - **complex_question**: Detailed, structured explanation
+        - **general**: Conversational assistance with knowledge base context
+      tags:
+        - "Chat"
+      operationId: "sendMessage"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+            examples:
+              greeting:
+                summary: "Greeting Example"
+                value:
+                  message: "Hello, how can you help?"
+              errorLog:
+                summary: "Error Log Analysis"
+                value:
+                  message: |
+                    Error: Connection refused on localhost:9092
+                    Exception: java.net.ConnectException: Failed to connect to kafka broker
+                    Stack trace: at KafkaProducer.send() line 234
+              simpleQuestion:
+                summary: "Simple Question"
+                value:
+                  message: "What is a timeout error?"
+                  message_type: "simple_question"
+              complexQuestion:
+                summary: "Complex Question"
+                value:
+                  message: "How do I implement retry logic with exponential backoff in a distributed system with multiple microservices?"
+
+      responses:
+        '200':
+          description: "Chat response with analysis"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+              examples:
+                errorAnalysis:
+                  summary: "Error Log Analysis Response"
+                  value:
+                    response: |
+                      ### 🔍 Analysis
+                      Kafka broker is unreachable on localhost:9092. The connection was refused, suggesting the broker is either not running or not listening on the expected port.
+
+                      ### 💡 Validated Hypothesis
+                      Kafka broker process has crashed or failed to start due to configuration issues or insufficient system resources.
+
+                      ### 🛠️ Diagnostics Performed
+                      Used tool `kafka` with parameters: `{"host": "localhost", "port": 9092}`
+
+                      ### ✅ Recommended Fix
+                      1. Verify Kafka broker is running: `systemctl status kafka`
+                      2. Check broker logs: `tail -f /var/log/kafka/server.log`
+                      3. Restart broker: `systemctl restart kafka`
+                      4. Verify connectivity: `nc -zv localhost 9092`
+                    message_type: "error_log"
+                greeting:
+                  summary: "Greeting Response"
+                  value:
+                    response: "Hello! I'm here to help you analyze errors, troubleshoot issues, and answer technical questions. What can I assist you with?"
+                    message_type: "greeting"
+
+        '400':
+          description: "Invalid request"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                detail: "Invalid request body"
+
+        '500':
+          description: "Server error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                detail: "Failed to process message: GROQ API timeout"
+
+components:
+  schemas:
+    ChatRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: "User message, question, or error log to analyze"
+          minLength: 1
+          maxLength: 10000
+          example: "Connection timeout to database"
+        message_type:
+          type: string
+          description: "Optional: Hint about message type. Auto-detected if omitted."
+          enum:
+            - "greeting"
+            - "error_log"
+            - "simple_question"
+            - "complex_question"
+            - "general"
+          example: "error_log"
+
+    ChatResponse:
+      type: object
+      required:
+        - response
+        - message_type
+      properties:
+        response:
+          type: string
+          description: "AI-generated response, potentially with markdown formatting"
+          example: "Error analysis with root cause and fix recommendations"
+        message_type:
+          type: string
+          description: "Detected or provided message type"
+          enum:
+            - "greeting"
+            - "error_log"
+            - "simple_question"
+            - "complex_question"
+            - "general"
+          example: "error_log"
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: "Error message"
+          example: "Internal server error"
+
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: "Optional: API key for rate limiting (future implementation)"
+
+tags:
+  - name: "System"
+    description: "API health and information endpoints"
+  - name: "Chat"
+    description: "Chat and RCA analysis endpoints"
+
+x-agent-metadata:
+  agent_type: "conversational_rca_agent"
+  intelligence_level: "agentic"
+  capabilities:
+    - "message_type_detection"
+    - "langgraph_orchestration"
+    - "dynamic_tool_selection"
+    - "hypothesis_validation"
+    - "knowledge_base_integration"
+    - "markdown_formatting"
+  llm_backend: "Groq (llama-3.1-70b-versatile)"
+  supported_inputs:
+    - "error_logs"
+    - "log_files"
+    - "error_messages"
+    - "natural_language_questions"
+    - "troubleshooting_requests"
+  supported_outputs:
+    - "root_cause_analysis"
+    - "diagnostic_reports"
+    - "fix_recommendations"
+    - "prevention_strategies"
+    - "conversational_responses"
+  message_types:
+    - "greeting"
+    - "error_log"
+    - "simple_question"
+    - "complex_question"
+    - "general"
