@@ -1,0 +1,15 @@
+ui_preferences:
+  inputs:
+    - name: "query"
+      label: "Paste Error Log or Ask Question"
+      component_type: "textarea"
+      placeholder: "e.g., Connection refused on localhost:9092..."
+      default: "Analyze this log: "
+  outputs:
+    data_mapping:
+      - key: "response"
+        label: "Analysis Response"
+        widget: "text_area"
+      - key: "message_type"
+        label: "Query Type"
+        widget: "metric_card"

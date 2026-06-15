@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <style>
+      .box { fill: #e3f2fd; stroke: #1976d2; stroke-width: 2; }
+      .box-frontend { fill: #fff3e0; stroke: #f57c00; stroke-width: 2; }
+      .box-backend { fill: #f3e5f5; stroke: #7b1fa2; stroke-width: 2; }
+      .box-agent { fill: #e8f5e9; stroke: #388e3c; stroke-width: 2; }
+      .box-tool { fill: #ffe0b2; stroke: #f57f17; stroke-width: 2; }
+      .box-llm { fill: #c8e6c9; stroke: #2e7d32; stroke-width: 2; }
+      .box-storage { fill: #b3e5fc; stroke: #01579b; stroke-width: 2; }
+      .text-label { font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 11px; text-anchor: middle; }
+      .text-white { fill: white; }
+      .arrow { fill: none; stroke: #333; stroke-width: 2; marker-end: url(#arrowhead); }
+      .arrow-dashed { fill: none; stroke: #666; stroke-width: 2; stroke-dasharray: 5,5; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#333" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="600" y="30" style="font-size: 24px; font-weight: bold; text-anchor: middle; fill: #1a1a1a;">
+    RCA Chat Agent - System Architecture
+  </text>
+  
+  <!-- Client Layer -->
+  <g id="client-layer">
+    <text x="100" y="70" style="font-size: 14px; font-weight: bold; fill: #1a1a1a;">🌐 Client Layer</text>
+    <rect x="30" y="80" width="140" height="60" class="box"/>
+    <text x="100" y="110" class="text-label text-white">User Browser</text>
+    <text x="100" y="125" class="text-small">HTTP/HTTPS</text>
+  </g>
+  
+  <!-- Frontend Layer -->
+  <g id="frontend-layer">
+    <text x="300" y="70" style="font-size: 14px; font-weight: bold; fill: #1a1a1a;">🎨 Frontend (Streamlit)</text>
+    
+    <rect x="200" y="80" width="120" height="60" class="box-frontend"/>
+    <text x="260" y="110" class="text-label">Landing</text>
+    <text x="260" y="125" class="text-small">main.py</text>
+    
+    <rect x="340" y="80" width="120" height="60" class="box-frontend"/>
+    <text x="400" y="110" class="text-label">Chat UI</text>
+    <text x="400" y="125" class="text-small">💬_chat.py</text>
+    
+    <rect x="480" y="80" width="120" height="60" class="box-frontend"/>
+    <text x="540" y="110" class="text-label">Admin</text>
+    <text x="540" y="125" class="text-small">📊_admin.py</text>
+    
+    <!-- Arrows from Client to Frontend -->
+    <path d="M 170 110 L 200 110" class="arrow"/>
+  </g>
+  
+  <!-- Backend Layer -->
+  <g id="backend-layer">
+    <text x="680" y="70" style="font-size: 14px; font-weight: bold; fill: #1a1a1a;">⚙️ Backend (FastAPI)</text>
+    
+    <rect x="620" y="80" width="120" height="60" class="box-backend"/>
+    <text x="680" y="110" class="text-label text-white">Router</text>
+    <text x="680" y="125" class="text-small">Type Detection</text>
+    
+    <rect x="760" y="80" width="120" height="60" class="box-backend"/>
+    <text x="820" y="110" class="text-label text-white">KB Loader</text>
+    <text x="820" y="125" class="text-small">load_knowledge</text>
+    
+    <!-- Arrows from Frontend to Backend -->
+    <path d="M 600 110 L 620 110" class="arrow"/>
+  </g>
+  
+  <!-- Agent & Tools Layer -->
+  <g id="agent-tools-layer">
+    <text x="300" y="200" style="font-size: 14px; font-weight: bold; fill: #1a1a1a;">🤖 LangGraph Agent</text>
+    
+    <!-- Agent steps -->
+    <rect x="150" y="210" width="100" height="50" class="box-agent"/>
+    <text x="200" y="235" class="text-label">1. Analyze</text>
+    
+    <rect x="270" y="210" width="100" height="50" class="box-agent"/>
+    <text x="320" y="235" class="text-label">2. Hypothesis</text>
+    
+    <rect x="390" y="210" width="100" height="50" class="box-agent"/>
+    <text x="440" y="235" class="text-label">3. Tool Select</text>
+    
+    <rect x="510" y="210" width="100" height="50" class="box-agent"/>
+    <text x="560" y="235" class="text-label">4. Validate</text>
+    
+    <rect x="630" y="210" width="100" height="50" class="box-agent"/>
+    <text x="680" y="235" class="text-label">5. Generate Fix</text>
+    
+    <!-- Arrows between steps -->
+    <path d="M 250 235 L 270 235" class="arrow"/>
+    <path d="M 370 235 L 390 235" class="arrow"/>
+    <path d="M 490 235 L 510 235" class="arrow"/>
+    <path d="M 610 235 L 630 235" class="arrow"/>
+    
+    <!-- Decision Diamond -->
+    <polygon points="730,210 760,235 730,260 700,235" fill="#ffeb3b" stroke="#f57f17" stroke-width="2"/>
+    <text x="730" y="238" class="text-small">Retry?</text>
+    
+    <!-- Retry arrow -->
+    <path d="M 725 260 L 725 280 L 320 280 L 320 260" class="arrow-dashed"/>
+  </g>
+  
+  <!-- Diagnostic Tools -->
+  <g id="tools-layer">
+    <text x="1050" y="200" style="font-size: 14px; font-weight: bold; fill: #1a1a1a;">🔧 Diagnostic Tools</text>
+    
+    <rect x="980" y="210" width="140" height="50" class="box-tool"/>
+    <text x="1050" y="235" class="text-label">Network Port</text>
+    
+    <rect x="980" y="270" width="140" height="50" class="box-tool"/>
+    <text x="1050" y="295" class="text-label">HTTP Endpoint</text>
+    
+    <rect x="980" y="330" width="140" height="50" class="box-tool"/>
+    <text x="1050" y="355" class="text-label">File/Log Inspect</text>
+    
+    <!-- Arrows from validation to tools -->
+    <path d="M 610 235 L 980 235" class="arrow" stroke="#f57f17"/>
+  </g>
+  
+  <!-- LLM Service -->
+  <g id="llm-layer">
+    <text x="300" y="420" style="font-size: 14px; font-weight: bold; fill: #1a1a1a;">🧠 LLM Service</text>
+    
+    <rect x="200" y="430" width="200" height="80" class="box-llm"/>
+    <text x="300" y="460" class="text-label text-white">Groq API</text>
+    <text x="300" y="480" class="text-small">llama-3.1-70b-versatile</text>
+    <text x="300" y="495" class="text-small">Fast Inference</text>
+    
+    <!-- Arrows to LLM -->
+    <path d="M 320 260 L 300 430" class="arrow" stroke="#2e7d32"/>
+    <path d="M 560 260 L 320 430" class="arrow" stroke="#2e7d32"/>
+  </g>
+  
+  <!-- Storage Layer -->
+  <g id="storage-layer">
+    <text x="750" y="420" style="font-size: 14px; font-weight: bold; fill: #1a1a1a;">💾 Storage</text>
+    
+    <rect x="650" y="430" width="200" height="80" class="box-storage"/>
+    <text x="750" y="460" class="text-label text-white">Knowledge Base</text>
+    <text x="750" y="480" class="text-small">Local Filesystem</text>
+    <text x="750" y="495" class="text-small">or Cloud Storage</text>
+    
+    <!-- Arrow from KB Loader to Storage -->
+    <path d="M 820 140 L 750 430" class="arrow" stroke="#01579b"/>
+  </g>
+  
+  <!-- Data Flow Summary -->
+  <g id="flow-summary">
+    <rect x="150" y="550" width="900" height="200" fill="none" stroke="#ccc" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="170" y="570" style="font-size: 13px; font-weight: bold; fill: #1a1a1a;">Request Flow Summary:</text>
+    
+    <text x="170" y="595" style="font-size: 12px; fill: #333;">
+      1. User sends message via Streamlit frontend (Chat Interface)
+    </text>
+    <text x="170" y="615" style="font-size: 12px; fill: #333;">
+      2. Frontend calls FastAPI backend: POST /execute {message, type}
+    </text>
+    <text x="170" y="635" style="font-size: 12px; fill: #333;">
+      3. Backend detects message type (error_log, greeting, question, etc.)
+    </text>
+    <text x="170" y="655" style="font-size: 12px; fill: #333;">
+      4. For error logs: Routes to LangGraph Agent for multi-step RCA analysis
+    </text>
+    <text x="170" y="675" style="font-size: 12px; fill: #333;">
+      5. For other messages: Direct LLM call with Knowledge Base context
+    </text>
+    <text x="170" y="695" style="font-size: 12px; fill: #333;">
+      6. Agent runs workflow: Analyze → Hypothesis → Tool Selection → Validation → Fix Generation
+    </text>
+    <text x="170" y="715" style="font-size: 12px; fill: #333;">
+      7. Response formatted and sent back to frontend for display
+    </text>
+  </g>
+  
+  <!-- Legend -->
+  <g id="legend">
+    <text x="150" y="780" style="font-size: 11px; fill: #666;">Legend: Blue=Client  |  Orange=Frontend  |  Purple=Backend  |  Green=Agent  |  Yellow=Tools  |  DarkGreen=LLM  |  LightBlue=Storage</text>
+  </g>
+</svg>

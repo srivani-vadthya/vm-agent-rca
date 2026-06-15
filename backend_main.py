@@ -33,8 +33,15 @@ llm = ChatGroq(
 )
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = None
+    query: str = None
     message_type: str = None
+    
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Map 'query' to 'message' if query is provided
+        if self.query and not self.message:
+            self.message = self.query
 
 class ChatResponse(BaseModel):
     response: str
@@ -105,7 +112,7 @@ async def health_check():
     }
 
 @app.post("/execute", response_model=ChatResponse)
-async def chat(request: ChatRequest):
+async def execute(request: ChatRequest):
     try:
         # 1. Detect the message type
         message_type = request.message_type or get_message_type(request.message)
