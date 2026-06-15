@@ -125,16 +125,11 @@ async def execute(request: ChatRequest):
             # Extract the final proposed fix generated at the end of the graph loop
             final_fix = agent_result.get("fix", "Agent completed, but no fix was compiled.")
             
-            # Format a structured response so the user can see what the agent checked
-            formatted_response = (
-                f"### 🔍 Analysis\n{agent_result.get('analysis')}\n\n"
-                f"### 💡 Validated Hypothesis\n{agent_result.get('hypothesis')}\n\n"
-                f"### 🛠️ Diagnostics Performed\nUsed tool `{agent_result.get('selected_tool')}` with parameters: `{agent_result.get('tool_kwargs')}`\n\n"
-                f"### ✅ Recommended Fix\n{final_fix}"
-            )
+            # Format a clean response
+            response_text = f"{agent_result.get('analysis')}\n\nHypothesis: {agent_result.get('hypothesis')}\n\nRecommended Fix: {final_fix}"
             
             return ChatResponse(
-                response=formatted_response,
+                response=response_text,
                 message_type=message_type
             )
         
