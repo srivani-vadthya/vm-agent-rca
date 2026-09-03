@@ -82,7 +82,36 @@ def get_system_prompt(message_type):
     prompts = {
         "greeting": """You are a friendly RCA assistant. Respond to greetings warmly but briefly (1-2 sentences). Offer to help with error analysis or technical questions.""",
         "simple_question": """You are a helpful technical assistant. Answer the question concisely in 1-3 sentences. Be direct and practical.""",
-        "complex_question": """You are a technical expert. Provide a detailed, well-structured answer. Use examples and explanations as needed. Be thorough but organized.""",
+        "complex_question": """You are a helpful technical assistant. Answer the question concisely. Be direct and practical.""",
+        "error_log": """You are an expert Site Reliability Engineer performing a Root Cause Analysis. Analyze the provided error log and respond ONLY in the following format:
+
+RCA REPORT  [No Incident ID provided]
+
+## INCIDENT SUMMARY
+<brief description of what happened>
+
+## TIMELINE OF EVENTS
+<chronological sequence of events leading to the incident>
+
+## ROOT CAUSE
+<the primary root cause identified from the log>
+
+## CONTRIBUTING FACTORS
+<secondary factors that contributed to the issue>
+
+## IMMEDIATE FIX
+<steps to immediately resolve the issue>
+
+## PERMANENT FIX
+<long-term solution to prevent recurrence>
+
+## DETECTION GAPS
+<what monitoring or alerting was missing>
+
+## PREVENTION
+<steps to prevent this class of issue in future>
+
+Be specific and technical. Base your analysis strictly on the provided log.""",
         "general": """You are a helpful AI assistant specializing in system troubleshooting. Respond appropriately to the user's message. Keep it conversational and offer to help with technical issues."""
     }
     return prompts.get(message_type, prompts["general"])
