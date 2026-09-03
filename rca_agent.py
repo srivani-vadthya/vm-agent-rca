@@ -161,27 +161,10 @@ def run_rca(error_message: str) -> dict:
         "analysis": "",
         "hypothesis": "",
         "selected_tool": "",
+        "tool_kwargs": {},
         "is_valid": False,
         "fix": "",
         "attempts": 0
     }
     result = graph.invoke(initial_state)
     return result
-
-graph = builder.compile()
-
-# -----------------------
-# RUN FUNCTION
-# -----------------------
-
-def run_rca(error_text):
-    return graph.invoke({
-        "error": error_text,
-        "analysis": "",
-        "hypothesis": "",
-        "selected_tool": "",
-        "tool_kwargs": {},
-        "is_valid": False,
-        "fix": "",
-        "attempts": 0
-    })

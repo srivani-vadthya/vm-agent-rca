@@ -7,10 +7,7 @@ from dotenv import load_dotenv
 import os
 from pathlib import Path
 
-# 🔌 NEW: Import the dynamic LangGraph execution function from your agent file
-from rca_agent import run_rca  
-
-load_dotenv()
+load_dotenv(override=True)
 
 app = FastAPI(title="RCA Chat API", version="1.0.0")
 KB_DIR = Path("knowledge_base")
@@ -26,10 +23,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize fallback LLM (used for greetings or simple questions)
 llm = ChatGroq(
-    groq_api_key=os.getenv("GROQ_API_KEY"),
-    model_name=os.getenv("MODEL_NAME", "llama-3.1-70b-versatile")
+    groq_api_key=os.getenv("GROQ_API_KEY").strip(),
+    model_name="openai/gpt-oss-120b"
 )
 
 class ChatRequest(BaseModel):
@@ -82,7 +78,7 @@ def get_message_type(text):
     return "general"
 
 def get_system_prompt(message_type):
-    """Get system prompt based on message type (Only used for non-agent fallbacks)"""
+    """Get system prompt based on message type"""
     prompts = {
         "greeting": """You are a friendly RCA assistant. Respond to greetings warmly but briefly (1-2 sentences). Offer to help with error analysis or technical questions.""",
         "simple_question": """You are a helpful technical assistant. Answer the question concisely in 1-3 sentences. Be direct and practical.""",
@@ -114,31 +110,16 @@ async def health_check():
 @app.post("/execute", response_model=ChatResponse)
 async def execute(request: ChatRequest):
     try:
-        # 1. Detect the message type
+        # Detect the message type
         message_type = request.message_type or get_message_type(request.message)
         
-        # 2. 🔥 ROUTING LOGIC: If it's an error log, use the dynamic LangGraph Agent!
-        if message_type == "error_log":
-            # Pass the raw log or error text directly into the LangGraph workflow
-            agent_result = run_rca(request.message)
-            
-            # Extract the final proposed fix generated at the end of the graph loop
-            final_fix = agent_result.get("fix", "Agent completed, but no fix was compiled.")
-            
-            # Format a clean response
-            response_text = f"{agent_result.get('analysis')}\n\nHypothesis: {agent_result.get('hypothesis')}\n\nRecommended Fix: {final_fix}"
-            
-            return ChatResponse(
-                response=response_text,
-                message_type=message_type
-            )
-        
-        # 3. FALLBACK: For normal text chat (greetings/simple questions), bypass the loop
+        # Get system prompt and load knowledge base
         system_prompt = get_system_prompt(message_type)
         kb_content = load_knowledge_base()
         if kb_content:
             system_prompt += f"\n\nKnowledge Base Context:\n{kb_content[:4000]}"
         
+        # Call LLM
         messages = [HumanMessage(content=system_prompt + "\n\nUser message:\n" + request.message)]
         response = llm.invoke(messages)
         
@@ -148,4 +129,10 @@ async def execute(request: ChatRequest):
         )
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
