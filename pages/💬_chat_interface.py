@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 from dotenv import load_dotenv
 import os
+import re
 import uuid
 from datetime import datetime
 
@@ -152,9 +153,17 @@ def chat_response(user_input):
         )
         response.raise_for_status()
         data = response.json()
-        return data["response"]
+        return normalize_response(data["response"])
     except requests.exceptions.RequestException as e:
         return f"Error connecting to backend: {str(e)}. Make sure backend is running at {BACKEND_URL}"
+
+def normalize_response(content):
+    """Unwrap single-line snippets that do not need a code block."""
+    return re.sub(
+        r"```[^\r\n]*\r?\n([^\r\n]*)\r?\n```",
+        r"\1",
+        content,
+    )
 
 def create_new_chat():
     chat_id = str(uuid.uuid4())
@@ -216,7 +225,7 @@ if not st.session_state.messages:
 else:
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+            st.markdown(normalize_response(message["content"]))
 
 # Chat input
 if prompt := st.chat_input("Type your message or paste error log..."):

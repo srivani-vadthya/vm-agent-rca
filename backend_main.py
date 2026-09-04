@@ -147,6 +147,11 @@ async def execute(request: ChatRequest):
         
         # Get system prompt and load knowledge base
         system_prompt = get_system_prompt(message_type)
+        system_prompt += (
+            "\n\nResponse formatting: Do not wrap ordinary terms, values, or one-line examples "
+            "in fenced code blocks. Use fenced code blocks only for actual multi-line code "
+            "or when the user explicitly asks for code formatting."
+        )
         kb_content = load_knowledge_base()
         if kb_content:
             system_prompt += f"\n\nKnowledge Base Context:\n{kb_content[:4000]}"
