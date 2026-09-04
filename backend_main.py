@@ -64,16 +64,16 @@ def get_message_type(text):
     if any(greeting in text_lower for greeting in greetings) and len(text) < 20:
         return "greeting"
     
-    simple_questions = ["what is", "what are", "how to", "can you", "do you", "is it", "why is", "when is", "who is"]
-    if any(q in text_lower for q in simple_questions):
-        return "simple_question"
-
     error_log_indicators = ["traceback", "stack trace", "at line", "exception in thread", "caused by",
                             "errno", "exit code", "segmentation fault", "core dumped"]
     has_error_indicator = any(kw in text_lower for kw in error_log_indicators)
     looks_like_log = len(text) > 200 and ("\n" in text)
     if has_error_indicator or looks_like_log:
         return "error_log"
+
+    simple_questions = ["what is", "what are", "how to", "can you", "do you", "is it", "why is", "when is", "who is"]
+    if any(q in text_lower for q in simple_questions):
+        return "simple_question"
     
     if "?" in text and len(text) > 50:
         return "complex_question"
@@ -86,35 +86,43 @@ def get_system_prompt(message_type):
         "greeting": """You are a friendly RCA assistant. Respond to greetings warmly but briefly (1-2 sentences). Offer to help with error analysis or technical questions.""",
         "simple_question": """You are a helpful technical assistant. Answer the question concisely in 1-3 sentences. Be direct and practical.""",
         "complex_question": """You are a helpful technical assistant. Answer the question concisely. Be direct and practical.""",
-        "error_log": """You are an expert Site Reliability Engineer performing a Root Cause Analysis. Analyze the provided error log and respond ONLY in the following format:
+        "error_log": """You are an expert Site Reliability Engineer performing a Root Cause Analysis. Analyze the provided log or error details and respond using exactly this format and heading order:
 
-RCA REPORT  [No Incident ID provided]
+    RCA REPORT [No Incident ID provided]
 
 ## INCIDENT SUMMARY
-<brief description of what happened>
+
+    <brief description of what happened>
 
 ## TIMELINE OF EVENTS
+
 <chronological sequence of events leading to the incident>
 
 ## ROOT CAUSE
+
 <the primary root cause identified from the log>
 
 ## CONTRIBUTING FACTORS
+
 <secondary factors that contributed to the issue>
 
 ## IMMEDIATE FIX
+
 <steps to immediately resolve the issue>
 
 ## PERMANENT FIX
+
 <long-term solution to prevent recurrence>
 
 ## DETECTION GAPS
+
 <what monitoring or alerting was missing>
 
 ## PREVENTION
+
 <steps to prevent this class of issue in future>
 
-Be specific and technical. Base your analysis strictly on the provided log.""",
+    Do not add other headings, an incident ID, or a preamble. Do not use fenced code blocks for ordinary values or one-line examples. Use a fenced code block only when a multi-line code or configuration example is necessary. Be specific and technical. Base your analysis strictly on the provided input.""",
         "general": """You are a helpful AI assistant specializing in system troubleshooting. Respond appropriately to the user's message. Keep it conversational and offer to help with technical issues."""
     }
     return prompts.get(message_type, prompts["general"])
