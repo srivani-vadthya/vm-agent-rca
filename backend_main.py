@@ -64,13 +64,16 @@ def get_message_type(text):
     if any(greeting in text_lower for greeting in greetings) and len(text) < 20:
         return "greeting"
     
-    error_keywords = ["error", "exception", "failed", "traceback", "stack trace", "connection refused", "timeout", "null pointer"]
-    if any(kw in text_lower for kw in error_keywords) or len(text) > 150:
-        return "error_log"
-    
-    simple_questions = ["what is", "how to", "can you", "do you", "is it"]
-    if any(q in text_lower for q in simple_questions) and len(text) < 50:
+    simple_questions = ["what is", "what are", "how to", "can you", "do you", "is it", "why is", "when is", "who is"]
+    if any(q in text_lower for q in simple_questions):
         return "simple_question"
+
+    error_log_indicators = ["traceback", "stack trace", "at line", "exception in thread", "caused by",
+                            "errno", "exit code", "segmentation fault", "core dumped"]
+    has_error_indicator = any(kw in text_lower for kw in error_log_indicators)
+    looks_like_log = len(text) > 200 and ("\n" in text)
+    if has_error_indicator or looks_like_log:
+        return "error_log"
     
     if "?" in text and len(text) > 50:
         return "complex_question"
